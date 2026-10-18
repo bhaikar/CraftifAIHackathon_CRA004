@@ -85,3 +85,8 @@ part1/evidence/event-log.csv
 part1/evidence/compiler-log.txt
 part1/evidence/platform-report.md
 part1/evidence/g0/
+
+# Generated integration runtime output
+runtime/
+incidents/
+
