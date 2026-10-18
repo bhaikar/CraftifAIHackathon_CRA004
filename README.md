@@ -1,3 +1,5 @@
+*TEAM-NAME: Epsilon*
+
 # CRAFTIFAI: FallGuard AI
 
 > **Privacy-Protected Assistive Fall Monitoring Pipeline & Operator Dashboard**
@@ -318,3 +320,5 @@ The automated privacy audit (`tools/privacy_audit.py`) was executed on the proje
 ---
 
 *Developed for CRAFTIFAI · Micro-Hack / FallGuard AI Initiative*
+*TEAM-NAME: Epsilon*
+
