@@ -1,0 +1,8 @@
+# CPU-side fall logic and replay validation
+numpy>=1.26,<3
+pytest>=8,<9
+
+# Install in the PipeGen/DeepStream container when available:
+# pyds
+# PyGObject
+# onnxruntime-gpu>=1.18

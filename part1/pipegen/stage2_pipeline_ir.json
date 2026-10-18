@@ -1,0 +1,21 @@
+{
+  "pipegen_version": "0.5.1",
+  "name": "craftifai-fallguard",
+  "description": "Single-person webcam pose pipeline with temporal fall sidecar",
+  "nodes": [
+    {"id": "capture", "kind": "camera", "source": "webcam", "outputs": ["frame", "timestamp_ms"]},
+    {"id": "preprocess", "kind": "resize_normalize", "input": "capture.frame", "size": [640, 640], "color": "RGB", "outputs": ["tensor"]},
+    {"id": "pose_engine", "kind": "tensorrt", "input": "preprocess.tensor", "precision": "fp16", "outputs": ["boxes", "keypoints", "scores"]},
+    {"id": "decode", "kind": "coco17_parser", "input": "pose_engine", "outputs": ["pose_metadata"]},
+    {"id": "fallguard", "kind": "sidecar", "input": "decode.pose_metadata", "outputs": ["frame_status"]},
+    {"id": "preview", "kind": "display", "input": "capture.frame", "debug_only": true}
+  ],
+  "edges": [
+    ["capture", "preprocess"],
+    ["preprocess", "pose_engine"],
+    ["pose_engine", "decode"],
+    ["decode", "fallguard"],
+    ["capture", "preview"]
+  ],
+  "privacy": {"raw_video_to_sidecar": false, "boxes_exposed_for_blur": true}
+}

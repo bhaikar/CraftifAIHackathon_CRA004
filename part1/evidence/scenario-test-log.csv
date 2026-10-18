@@ -1,0 +1,9 @@
+scenario,run_id,expected_state,observed_state,fall_detected,hard_negative,frames,elapsed_s,notes
+walk,not-run,Normal,,false,false,,,pending G0/runtime
+bend,not-run,Normal,,false,true,,,pending G0/runtime
+sit,not-run,Normal,,false,true,,,pending G0/runtime
+lie_down,not-run,Possible Fall -> Confirmed Fall,,true,false,,,pending G0/runtime
+simulated_fall,not-run,Possible Fall -> Confirmed Fall,,true,false,,,pending G0/runtime
+recovery,not-run,Recovering -> Normal after ACK,,true,false,,,pending G0/runtime
+occlusion,not-run,Unknown,,false,false,,,pending G0/runtime
+camera_loss,not-run,Unknown,,false,false,,,pending G0/runtime

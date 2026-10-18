@@ -1,0 +1,19 @@
+# Python caches and local tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Local model, TensorRT, and runtime outputs
+*.onnx
+*.engine
+*.plan
+*.trt
+*.log
+
+# Runtime evidence and generated records
+part1/evidence/event-log.csv
+part1/evidence/compiler-log.txt
+part1/evidence/platform-report.md
+part1/evidence/g0/
