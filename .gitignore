@@ -1,0 +1,67 @@
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+dist/
+build/
+pip-wheel-metadata/
+
+# Tests / coverage / type checkers
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+
+# Local env and secrets (never commit)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.toml
+.streamlit/secrets.toml
+credentials.json
+
+# Editor / OS
+.cursor/
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local demo / runtime output (created when you run the mock + dashboard)
+fallguard_part2/runtime/
+fallguard_part2/incidents/*.jsonl
+*.tmp
+
+# Large / generated media and models if added later
+*.pt
+*.onnx
+*.h5
+*.pkl
+*.mp4
+*.avi
+*.wav

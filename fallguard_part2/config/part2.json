@@ -1,0 +1,12 @@
+{
+  "model": "TBD-from-part1",
+  "runtime": "PipeGen v0.5.1",
+  "blur": {
+    "pad_ratio": 0.25,
+    "hold_frames": 0,
+    "person_recent_s": 2.0,
+    "empty_scene_policy": "full_blur"
+  },
+  "mqtt": {"host": "localhost", "port": 1883, "qos": 1},
+  "incident_dir": "incidents"
+}
