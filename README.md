@@ -1,172 +1,268 @@
-*TEAM-NAME: Epsilon*
-
 # CRAFTIFAI: FallGuard AI
 
-> **Privacy-Protected Assistive Fall Monitoring Pipeline & Operator Dashboard**
+**Privacy-preserving fall-monitoring pipeline and operator dashboard**
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.28%2B-orange.svg)](https://streamlit.io/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Status: Simulation Mode](https://img.shields.io/badge/status-simulation%20mode-yellow.svg)](#limitations)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.28%2B-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![License:
+MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Linux](https://img.shields.io/badge/Linux-Ubuntu%2020.04%2B-FCC624?logo=linux&logoColor=black)](#requirements-and-supported-environments)
+[![Runtime](https://img.shields.io/badge/runtime-CPU%20simulation%20%7C%20NVIDIA%20GPU%20target-blue.svg)](#runtime-modes)
 
----
+FallGuard AI is a research and demonstration project exploring how
+fall-event monitoring can be combined with privacy-preserving image
+handling. It connects a temporal fall-state machine to a fail-closed
+blur pipeline, metadata-only incident records, alert messaging, and a
+Streamlit operator dashboard.
 
-## Table of Contents
+> **Current status:** The documented workflow runs in simulation mode.
+> Live camera inference and production deployment require additional
+> hardware/runtime integration and validation. This is not a certified
+> medical device or a substitute for caregiver supervision.
 
-1. [Project Overview](#1-project-overview)
-2. [Problem Statement & Motivation](#2-problem-statement--motivation)
-3. [Key Features](#3-key-features)
-4. [System Architecture & Data Flow](#4-system-architecture--data-flow)
-5. [Technology Stack](#5-technology-stack)
-6. [Repository Folder Structure](#6-repository-folder-structure)
-7. [Prerequisites & System Requirements](#7-prerequisites--system-requirements)
-8. [Installation & Setup Instructions](#8-installation--setup-instructions)
-9. [Running the Integration Simulation](#9-running-the-integration-simulation)
-10. [Launching the Operator Dashboard](#10-launching-the-operator-dashboard)
-11. [Running Test Suites](#11-running-test-suites)
-12. [Privacy-Preserving Image Processing & Fail-Closed Behavior](#12-privacy-preserving-image-processing--fail-closed-behavior)
-13. [Incident Logging & Acknowledgement Workflow](#13-incident-logging--acknowledgement-workflow)
-14. [Example Incident Output](#14-example-incident-output)
-15. [Privacy Audit & Verified Test Results](#15-privacy-audit--verified-test-results)
-16. [Current Limitations & Future Improvements](#16-current-limitations--future-improvements)
-17. [Troubleshooting Common Setup Errors](#17-troubleshooting-common-setup-errors)
-18. [Medical Disclaimer](#18-medical-disclaimer)
+## Contents
 
----
+-   [At a glance](#at-a-glance)
+-   [Why FallGuard AI](#why-fallguard-ai)
+-   [Features](#features)
+-   [Architecture and data flow](#architecture-and-data-flow)
+-   [Technology stack](#technology-stack)
+-   [Repository structure](#repository-structure)
+-   [Requirements](#requirements)
+-   [Installation](#installation)
+-   [Run the integration simulation](#run-the-integration-simulation)
+-   [Launch the dashboard](#launch-the-dashboard)
+-   [Run tests](#run-tests)
+-   [Privacy model](#privacy-model)
+-   [Incident logging and
+    acknowledgements](#incident-logging-and-acknowledgements)
+-   [Example incident record](#example-incident-record)
+-   [Privacy audit results](#privacy-audit-results)
+-   [Troubleshooting](#troubleshooting)
+-   [Limitations and roadmap](#limitations-and-roadmap)
+-   [Safety disclaimer](#safety-disclaimer)
 
-## 1. Project Overview
+## At a glance
 
-**CRAFTIFAI FallGuard AI** is an advanced, privacy-first computer vision and operator monitoring pipeline designed to detect falls in residential and assisted living environments. Built around a robust **5-state temporal fall state machine** and a **fail-closed privacy blur architecture**, FallGuard processes video feeds to identify fall events while strictly preventing the exposure or storage of identifiable personal imagery.
+  ---------------------------------------------------------------------
+  Area                               Purpose
+  ---------------------------------- ----------------------------------
+  Fall-state tracking                Uses a five-state temporal state
+                                     machine to track possible and
+                                     confirmed fall events
 
-The project is structured into two main components:
-- **Part 1 (`part1/`)**: Core pose processing engine (COCO-17 keypoints), single-person validation policy, torso-length normalization, trunk angle calculation, and temporal fall state machine.
-- **Part 2 (`fallguard_part2/`)**: Fail-closed privacy blurring (`FailClosedBlurrer`), metadata-only incident logging (`IncidentLogger`), MQTT/Local messaging buses, integration runner, and a Streamlit operator dashboard (`dashboard/app.py`).
+  Privacy processing                 Blurs person regions and falls
+                                     back to full-frame blur or frame
+                                     dropping when safeguards fail
 
----
+  Incident records                   Writes whitelisted scalar metadata
+                                     rather than raw image data
 
-## 2. Problem Statement & Motivation
+  Alerts                             Supports local messaging and
+                                     MQTT-based status/alert messages
 
-Traditional video monitoring in healthcare and elder care creates significant privacy risks: continuous unmasked video streams expose vulnerable individuals to constant surveillance, data leakage, and unauthorized recording. 
+  Operator UI                        Displays current state, input
+                                     health, privacy-protected
+                                     previews, incident history, and
+                                     acknowledgement controls
 
-FallGuard solves this dilemma through **privacy by design**:
-1. **Client-Side / Edge Protection**: Raw video frames are never emitted, transmitted, or logged.
-2. **Bounding-Box Regional Masking**: Only identified person bounding boxes (`person_box`) receive localized pixelation.
-3. **Fail-Closed Safeguards**: If blurring fails, metadata is missing, or freshness/camera status cannot be guaranteed, the pipeline defaults instantly to full-frame blurring or drops the frame entirely.
-4. **Metadata-Only Incident Records**: Downstream audit logs store only whitelisted scalar metrics (`event`, `state`, `evidence_score`, `reason`, timestamps), eliminating privacy liability.
+  Testing                            Includes unit/integration tests
+                                     and an automated privacy-audit
+                                     tool
+  ---------------------------------------------------------------------
 
----
+## Why FallGuard AI
 
-## 3. Key Features
+Video monitoring in elder-care and assisted-living settings can expose
+highly personal footage. FallGuard AI explores a privacy-by-design
+approach: perform fall-state analysis, prevent raw frames from reaching
+downstream sinks, and keep incident history focused on operational
+metadata.
 
-- **5-State Temporal State Machine**: Tracks transitions between `normal`, `possible_fall`, `confirmed_fall`, `recovering`, and `unknown` states with hysteresis and dwell-time validation.
-- **Fail-Closed Privacy Blur (`FailClosedBlurrer`)**: Guarantees that no raw image reaches any storage sink without going through rigorous blurring and sink verification (`require_blurred()`).
-- **Metadata-Only JSONL Incident Logger (`IncidentLogger`)**: Records immutable incident histories with strict field whitelisting and filesystem fsync durability.
-- **Real-Time MQTT & Local Messaging (`MqttBus`, `LocalBus`)**: Publishes low-latency status updates (`care/room1/status`) and fall alerts (`care/room1/fall`).
-- **Streamlit Control-Room Dashboard**: Professional operator interface featuring real-time state cards, evidence metrics, input health indicators, privacy-protected preview viewer, filterable incident history, and acknowledgment controls.
-- **Automated Privacy Audit Suite (`tools/privacy_audit.py`)**: Rigorously tests the pipeline against 8 distinct privacy failure scenarios (blur crashes, missing metadata, box mismatch, camera loss).
+The pipeline is designed around four principles:
 
----
+1.  **Privacy before output:** downstream image sinks accept verified
+    blurred-frame objects rather than raw frames.
+2.  **Fail closed:** when required metadata, bounding boxes, camera
+    health, or blur processing cannot be trusted, the system uses
+    full-frame blur or drops the frame.
+3.  **Metadata-only incident history:** incident records use a strict
+    allowlist of fields.
+4.  **Operator oversight:** the dashboard provides event visibility and
+    acknowledgement controls, while remaining an assistive prototype
+    rather than an autonomous safety system.
 
-## 4. System Architecture & Data Flow
+## Features
 
-```mermaid
-graph TD
-    subgraph Part 1: Perception & State Machine
-        Cam[Video Stream / Mock Producer] -->|Raw Frame & Metadata| Pose[COCO-17 Pose Estimator]
-        Pose --> FSM[Fall State Machine]
-        FSM -->|FrameStatus dataclass| Adapter[Adapter Layer]
-    end
+-   **Five-state temporal fall logic:** `normal`, `possible_fall`,
+    `confirmed_fall`, `recovering`, and `unknown`, with temporal
+    validation and hysteresis.
+-   **Fail-closed privacy blurring:** `FailClosedBlurrer` applies
+    regional pixelation when valid person boxes and camera status are
+    available, and falls back to full-frame blur when necessary.
+-   **Frame-drop protection:** if blur processing raises an exception,
+    the pipeline drops the frame instead of forwarding an unblurred
+    image.
+-   **Metadata-only JSONL logging:** `IncidentLogger` validates records
+    against an allowlist and writes incident history to JSON Lines.
+-   **Local and MQTT messaging:** `LocalBus`, `MqttBus`, and alert
+    publishing support status and fall-event messages, including topics
+    such as `care/room1/status` and `care/room1/fall`.
+-   **Streamlit operator dashboard:** current-state cards, evidence
+    metrics, input-health indicators, blurred preview, incident history,
+    and acknowledgement controls.
+-   **Privacy audit tooling:** `fallguard_part2/tools/privacy_audit.py`
+    exercises failure scenarios such as blur exceptions, missing
+    metadata, bounding-box issues, and camera loss.
 
-    subgraph Adapter & Part 2 Pipeline
-        Adapter -->|convert_part1_status| Msg[StateMessage]
-        Msg --> App[Part2App.step]
-        Raw[Raw Frame Array] --> App
-        App --> Blur[FailClosedBlurrer]
-        Blur -->|BlurredFrame / region or full| Sink[Runtime I/O Sink]
-        App --> Log[IncidentLogger / incidents.jsonl]
-        App --> MQTT[MqttBus / AlertPublisher]
-    end
+## Architecture and data flow
 
-    subgraph Operator Dashboard & Storage
-        Sink -->|status.json & latest_blurred.jpg| Dash[Streamlit Dashboard]
-        Log -->|Read incidents| Dash
-        Dash -->|Operator Ack request| Ack[ack.json / MQTT ack]
-    end
+``` mermaid
+flowchart TD
+    A[Video stream or mock producer] --> B[COCO-17 pose processing]
+    B --> C[Five-state fall state machine]
+    C --> D[Part 1 to Part 2 adapter]
+    D --> E[Part 2 controller]
+    F[Raw frame array] --> E
+    E --> G[Fail-closed privacy blurrer]
+    G --> H[Runtime I/O sink]
+    E --> I[Metadata-only incident logger]
+    E --> J[Local bus or MQTT alerts]
+    H --> K[Streamlit operator dashboard]
+    I --> K
+    K --> L[Acknowledgement request]
+    L --> M[ack.json or MQTT acknowledgement]
 ```
 
----
+**Flow summary**
 
-## 5. Technology Stack
+1.  Part 1 processes pose/state information and produces a
+    `FrameStatus`.
+2.  The adapter converts the status into a Part 2 `StateMessage`.
+3.  Part 2 coordinates frame blurring, incident logging, messaging, and
+    runtime status updates.
+4.  The runtime sink writes status and the privacy-protected preview for
+    the dashboard.
+5.  Operators can review incident history and submit an acknowledgement.
 
-- **Language**: Python 3.10+
-- **Computer Vision & Numerical Processing**: OpenCV (`opencv-python-headless`), NumPy
-- **Operator Interface**: Streamlit (>= 1.28.0)
-- **IoT / Messaging**: Paho-MQTT (>= 1.6.0)
-- **Testing & Quality**: Pytest (>= 7.0.0)
-- **Target Production Runtime**: NVIDIA Jetson / G0 Linux environment with TensorRT, DeepStream Python bindings (`pyds`), and GStreamer (simulation mode runs fully on standard CPU hosts).
+## Technology stack
 
----
+-   **Language:** Python 3.10+
+-   **Computer vision and numerical processing:** OpenCV
+    (`opencv-python-headless`), NumPy
+-   **Dashboard:** Streamlit 1.28+
+-   **Messaging:** Paho-MQTT 1.6+
+-   **Testing:** pytest 7+
+-   **Potential production target:** NVIDIA Jetson/Linux with TensorRT,
+    DeepStream Python bindings (`pyds`), and GStreamer. These components
+    are not required for the CPU-based simulation.
 
-## 6. Repository Folder Structure
+## Repository structure
 
-```text
+``` text
 CRAFTIFAI/
-├── part1/                      # Part 1: Perception & State Machine
-│   ├── contract.py             # FrameStatus dataclass & FallState enum
-│   ├── fallguard/              # Core state machine, feature extraction & sidecar
-│   │   ├── fallguard.py        # Main processing loop & event logger
-│   │   ├── state_machine.py    # 5-state temporal fall state machine
-│   │   └── watchdog.py         # Staleness & frame cadence monitor
-│   ├── pipegen/                # Pipeline IR, ONNX models & TensorRT compiler
-│   ├── tests/                  # Part 1 unit tests
-│   └── sample-input.jsonl      # Replayable metadata traces
-│
-└── fallguard_part2/            # Part 2: Privacy Blur, Incidents & Dashboard
-│   ├── config/                 # Configuration JSON files
-│   ├── dashboard/              # Streamlit operator control room (app.py)
-│   ├── privacy/                # Privacy test reports & audit documentation
-│   ├── src/fg2/                # Core Part 2 modules
-│   │   ├── adapter.py          # Part 1 -> Part 2 status adapter
-│   │   ├── alerts.py           # MQTT alert publisher
-│   │   ├── app.py              # Controller pipeline (step function)
-│   │   ├── blur.py             # Fail-closed privacy blurrer
-│   │   ├── bus.py              # MqttBus and LocalBus implementations
-│   │   ├── contract.py         # StateMessage schema and validation
-│   │   ├── incident_log.py     # Metadata-only JSONL incident recorder
-│   │   ├── mock_source.py      # Synthetic test stream generator
-│   │   └── runtime_io.py       # File-based runtime status & ack channels
-│   ├── tools/                  # Privacy audit runner (privacy_audit.py)
-│   ├── tests/                  # Part 2 unit & integration test suites
-│   ├── run_integration.py      # End-to-end integration simulation runner
-│   ├── run_mock.py             # Part 2 standalone mock runner
-│   └── requirements.txt        # Python package dependencies
+├── part1/                          # Perception and fall-state logic
+│   ├── contract.py                 # FrameStatus dataclass and FallState enum
+│   ├── fallguard/
+│   │   ├── fallguard.py            # Processing loop and event logging
+│   │   ├── state_machine.py        # Five-state temporal state machine
+│   │   └── watchdog.py             # Staleness and frame-cadence monitoring
+│   ├── pipegen/                    # Pipeline IR, ONNX models, TensorRT compiler
+│   ├── tests/                      # Part 1 tests
+│   └── sample-input.jsonl          # Replayable metadata traces
+└── fallguard_part2/                # Privacy, incidents, integration, dashboard
+    ├── config/                     # JSON configuration
+    ├── dashboard/
+    │   └── app.py                  # Streamlit operator dashboard
+    ├── privacy/                    # Privacy audit reports and documentation
+    ├── src/fg2/
+    │   ├── adapter.py              # Part 1 -> Part 2 status adapter
+    │   ├── alerts.py               # MQTT alert publisher
+    │   ├── app.py                  # Part 2 controller pipeline
+    │   ├── blur.py                 # Fail-closed privacy blurring
+    │   ├── bus.py                  # LocalBus and MqttBus
+    │   ├── contract.py              # StateMessage schema and validation
+    │   ├── incident_log.py         # Metadata-only JSONL logger
+    │   ├── mock_source.py          # Synthetic stream generator
+    │   └── runtime_io.py           # Runtime status and acknowledgement I/O
+    ├── tools/
+    │   └── privacy_audit.py        # Automated privacy audit runner
+    ├── tests/                      # Part 2 unit and integration tests
+    ├── run_integration.py          # End-to-end integration simulation
+    ├── run_mock.py                 # Standalone mock runner
+    └── requirements.txt             # Python dependencies
 ```
 
----
+## Requirements and supported environments
 
-## 7. Prerequisites & System Requirements
+-   Python 3.10 or later
+-   Ubuntu 20.04, 22.04, 24.04+, or another compatible Linux
+    distribution for the documented Linux workflow
+-   Windows 10/11 or macOS may also be used for CPU development where
+    dependencies are supported
+-   A CPU is sufficient for simulation, the Streamlit dashboard, and
+    tests
 
-- **Python**: Version 3.10 or higher.
-- **Operating System**: Windows 10/11, Linux, or macOS.
-- **Hardware**: Standard CPU is fully sufficient for running integration simulations and the Streamlit dashboard. (NVIDIA GPU with TensorRT/DeepStream is required only for live production camera inference).
+## Runtime modes
 
----
+### CPU simulation and development
 
-## 8. Installation & Setup Instructions
+The CPU workflow uses mock feeds, synthetic frames, and metadata traces.
+It does not require an NVIDIA GPU.
 
-### Windows Command Prompt (`cmd.exe`)
+### Production GPU target
 
-```cmd
-python -m venv .venv
-call .venv\Scripts\activate.bat
+The target accelerated deployment uses an NVIDIA Linux environment,
+typically an Ubuntu-based container with GPU passthrough and compatible
+host drivers. TensorRT, DeepStream SDK (`pyds`), GStreamer, and
+PyGObject (`gi`) must be installed in versions compatible with the
+selected NVIDIA platform. These production dependencies are not
+installed by `fallguard_part2/requirements.txt`.
+
+> **Important:** A successful CPU simulation does not mean that live GPU
+> inference is configured or production-ready.
+
+## Installation
+
+Run these commands from the **repository root**.
+
+### 1. Create and activate a virtual environment
+
+**Ubuntu/Linux**
+
+``` bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+If the `venv` module is unavailable on Ubuntu, install it with your
+distribution's package manager, commonly
+`sudo apt install python3-venv`, then retry.
+
+### 2. Install Python dependencies
+
+``` bash
 python -m pip install --upgrade pip
 python -m pip install -r fallguard_part2/requirements.txt
-set PYTHONPATH=.;part1;fallguard_part2/src
 ```
 
-### Windows PowerShell (`powershell.exe`)
+### 3. Configure Python import paths
 
-```powershell
+Run this in the same terminal session where you will launch the
+application:
+
+``` bash
+export PYTHONPATH=".:part1:fallguard_part2/src"
+```
+
+If you open another terminal, activate the virtual environment and
+export `PYTHONPATH` again.
+
+### Optional: Windows commands
+
+**PowerShell**
+
+``` powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
@@ -174,90 +270,123 @@ python -m pip install -r fallguard_part2/requirements.txt
 $env:PYTHONPATH=".;part1;fallguard_part2/src"
 ```
 
----
+**Command Prompt**
 
-## 9. Running the Integration Simulation
+``` cmd
+python -m venv .venv
+call .venv\Scripts\activate.bat
+python -m pip install --upgrade pip
+python -m pip install -r fallguard_part2/requirements.txt
+set PYTHONPATH=.;part1;fallguard_part2/src
+```
 
-The integration runner combines Part 1's pose and state machine logic with Part 2's privacy blur, incident logger, and runtime status writers using synthetic test frames and metadata traces.
+## Run the integration simulation
 
-```powershell
+With the virtual environment active and `PYTHONPATH` configured, run
+from the repository root:
+
+``` bash
 python fallguard_part2/run_integration.py
 ```
 
-This generates live runtime state files in `runtime/` (`status.json`, `latest_blurred.jpg`) and incident records in `runtime/incidents/incidents.jsonl`.
+The simulation uses synthetic frames and metadata traces to exercise the
+integrated pipeline. Runtime artifacts may include:
 
----
+-   `runtime/status.json`
+-   `runtime/latest_blurred.jpg`
+-   `runtime/incidents/incidents.jsonl`
 
-## 10. Launching the Operator Dashboard
+These are generated runtime outputs and may be recreated when the
+simulation runs.
 
-To launch the real-time Streamlit operator control room:
+## Launch the dashboard
 
-```powershell
+Keep the integration simulation running in one terminal. In a **second
+terminal**, change to the repository root, activate the virtual
+environment, set `PYTHONPATH` again, and launch:
+
+``` bash
+source .venv/bin/activate
+export PYTHONPATH=".:part1:fallguard_part2/src"
 streamlit run fallguard_part2/dashboard/app.py
 ```
 
-Open your browser and navigate to:
-👉 **`http://localhost:8501`**
+Then open <http://localhost:8501>.
 
-The dashboard provides:
-- Live status banner with input health and timestamp freshness checks.
-- Current fall state card with severity color coding and safety text.
-- Core metrics: Evidence score, state duration, input health, frame ID.
-- Privacy-protected preview viewer displaying the blurred output image (`latest_blurred.jpg`).
-- Filterable incident history table loaded from `incidents.jsonl`.
-- Operator acknowledgment button to acknowledge active fall events.
+The dashboard is intended to show the current fall state, input/camera
+health, evidence metrics, blurred preview, incident history, and
+acknowledgement controls.
 
----
+## Run tests
 
-## 11. Running Test Suites
+With the virtual environment active and `PYTHONPATH` configured, run
+from the repository root:
 
-### Run Part 1 Tests
-```powershell
+``` bash
 python -m pytest -v part1/tests
-```
-
-### Run Part 2 Tests (Including Adapter & Integration Tests)
-```powershell
 python -m pytest -v fallguard_part2/tests
 ```
 
----
+To run both suites in one command:
 
-## 12. Privacy-Preserving Image Processing & Fail-Closed Behavior
+``` bash
+python -m pytest -v part1/tests fallguard_part2/tests
+```
 
-The `FailClosedBlurrer` (`fallguard_part2/src/fg2/blur.py`) enforces strict privacy guarantees:
-- **Regional Pixelation**: When valid person bounding boxes (`boxes`) are received and `camera_ok` is true, the blurrer applies localized pixelation exclusively inside the bounding box coordinates, leaving background surroundings intact.
-- **Fail-Closed Full Blur**: If bounding boxes are missing, empty, or fall outside frame boundaries, or if a camera fault is detected, the entire frame is heavily blurred (`full` mode) to prevent unmasked exposure.
-- **Drop-on-Crash Guarantee**: If the blur operation encounters an exception, the frame is instantly dropped (`None` emitted), ensuring unblurred imagery never propagates downstream.
-- **Sink Enforcement**: All downstream sinks must call `require_blurred()`, verifying that the input object is a valid `BlurredFrame` instance. Raw `ndarray` frames passed directly to storage functions are strictly refused.
+## Privacy model
 
----
+The privacy boundary is enforced in `fallguard_part2/src/fg2/blur.py`
+and the runtime sink.
 
-## 13. Incident Logging & Acknowledgement Workflow
+-   **Regional blur:** valid person bounding boxes can receive localized
+    pixelation when camera status is healthy.
+-   **Full-frame blur:** missing/invalid boxes or camera faults trigger
+    full-frame blur.
+-   **Drop on processing failure:** if the blur operation fails, the
+    frame is dropped (`None`) rather than forwarded.
+-   **Sink validation:** sinks call `require_blurred()` and reject raw
+    NumPy image arrays.
+-   **Incident allowlist:** logs and alerts are restricted to approved
+    scalar metadata fields.
 
-### Incident Logger (`IncidentLogger`)
-- Tracks state transitions (`normal` $\rightarrow$ `possible_fall` $\rightarrow$ `confirmed_fall` $\rightarrow$ `recovering`).
-- Opens incidents on `possible_fall` or `confirmed_fall` and closes them when returning to `normal`.
-- **Strict Field Whitelisting**: Every recorded dictionary is sanitized against an allowed schema (`event`, `incident_id`, `ts`, `ts_iso`, `state`, `reason`, `evidence_score`, `track_id`, `frame_id`, `model`, `runtime`, `operator_action`). Any unwhitelisted key or non-scalar value (such as raw images or bounding box arrays) triggers an immediate `PrivacyError`.
+These are design and test claims for this prototype, not a guarantee of
+anonymity under every camera, lighting, resolution, or deployment
+condition. Validate privacy on the actual target hardware and footage
+before any real-world use.
 
-### Acknowledgement Workflow & Limitations
-- Operators can click **"Acknowledge current event"** on the dashboard, which writes an acknowledgement command (`ack.json` or MQTT message on `care/room1/ack`).
-- **Integration Limitation Notice**: While Part 2 successfully records operator acknowledgements and logs them as `acknowledged` events, the upstream state machine consumer loop in Part 1 requires explicit manual consumption or binding in production deployments to fully re-arm the temporal state machine automatically.
+## Incident logging and acknowledgements
 
----
+`IncidentLogger` records state transitions and incident lifecycle events
+in JSONL format. The documented flow opens incidents on `possible_fall`
+or `confirmed_fall` and closes them when the state returns to `normal`.
 
-## 14. Example Incident Output
+The logger's allowlist includes fields such as:
 
-Below is a sample record from `runtime/incidents/incidents.jsonl`:
+`event`, `incident_id`, `ts`, `ts_iso`, `state`, `reason`,
+`evidence_score`, `track_id`, `frame_id`, `model`, `runtime`, and
+`operator_action`.
 
-```json
+Unapproved keys and non-scalar values are rejected with a
+`PrivacyError`.
+
+The dashboard acknowledgement action writes an acknowledgement request
+to `ack.json` or publishes an MQTT message on `care/room1/ack`. **Known
+integration limitation:** the Part 1 state-machine consumer must be
+explicitly wired to consume acknowledgements for automatic re-arming in
+a production pipeline.
+
+## Example incident record
+
+A representative JSONL incident record may look like this:
+
+``` json
 {
   "event": "incident_opened",
-  "incident_id": "inc_20261018_203950_1",
-  "ts": 1711234567.89,
+  "incident_id": "inc_example_001",
+  "ts": 1792355990.0,
   "ts_iso": "2026-10-18T20:39:50Z",
   "state": "confirmed_fall",
-  "reason": "Trunk angle exceeded 65 degrees with low torso movement",
+  "reason": "Trunk angle exceeded threshold with low torso movement",
   "evidence_score": 0.92,
   "track_id": 1,
   "frame_id": 142,
@@ -266,59 +395,135 @@ Below is a sample record from `runtime/incidents/incidents.jsonl`:
 }
 ```
 
----
+This is an illustrative example, not a record from a live monitored
+person.
 
-## 15. Privacy Audit & Verified Test Results
+## Privacy audit results
 
-The automated privacy audit (`tools/privacy_audit.py`) was executed on the project environment, testing 1,728 frames across 8 distinct failure scenarios.
+The project notes report that `fallguard_part2/tools/privacy_audit.py`
+was run against 1,728 frames across eight failure scenarios. The
+recorded report lists the following outcomes:
 
-### Verified Audit Results (`PRIVACY_TEST_REPORT.md`)
+  -----------------------------------------------------------------------
+  Audit check          Reported evidence             Result in report
+  -------------------- ----------------------------- --------------------
+  Raw frame not        1,728 frames; raw-frame       Pass
+  emitted              equality count: 0             
 
-| Audit Rule / Check | Measured Evidence | Result |
-|---|---|---|
-| Raw frame is never emitted | 1728 frames across 8 scenarios; raw frames equal to input: 0 | **PASS** |
-| Person regions are unrecognisable | 1342 person frames; frames keeping >= 15% neighbour pixel detail: 0 | **PASS** |
-| Blur crash means no output | 43 deliberately injected blur crashes; images/video flags left behind: 0 | **PASS** |
-| Camera loss is never shown clean | 22 camera-lost frames in mock scenario; none shown unblurred: 0 | **PASS** |
-| Only blurred frames reach sinks | Direct `write_latest(raw_ndarray)` calls: refused with `PrivacyError` | **PASS** |
-| Only expected files are written | Written: `ack.json`, `incidents.jsonl`, `latest_blurred.jpg`, `status.json` (plus temp files) | **PASS** |
-| Output folders hold no video/raw images | No raw `.mp4`, `.avi`, or unmasked `.jpg` files present | **PASS** |
-| Saved preview is verified blurred | `latest_blurred.jpg` successfully decodes and is the sole image artifact | **PASS** |
-| Incident log is metadata-only | All records strictly contain whitelisted scalar fields only | **PASS** |
-| MQTT alerts are metadata-only | All published alerts strictly adhere to whitelisted schema | **PASS** |
-| Stale status never looks current | Missing, 10s-old, and fresh status correctly detected | **PASS** |
-| Unit and integration test suites | **44 / 44 Part 2 tests passed** (6.74s execution time) | **PASS** |
+  Person regions       1,342 person frames; frames   Pass
+  sufficiently         retaining at least 15%        
+  obscured by the      neighbour pixel detail: 0     
+  audit metric                                       
 
----
+  Blur crash produces  43 injected blur crashes; no  Pass
+  no output            image/video flags left behind 
 
-## 16. Current Limitations & Future Improvements
+  Camera loss never    22 simulated camera-loss      Pass
+  shown clean          frames; none shown unblurred  
 
-1. **Simulation Mode**: Local development and tests use synthetic CPU mock frames and generated keypoint traces. Live NVIDIA TensorRT / DeepStream / GStreamer GPU operation requires a dedicated G0 Linux container runtime.
-2. **Acknowledgement Consumption Loop**: Operator acknowledgements currently write `ack.json` and log to incident history, but full automatic re-arming of Part 1's temporal state machine requires integration of the ACK message consumer in production pipelines.
-3. **Face Recognition on Real Footage**: Audit metrics ensure pixelated regional blur against pixel difference thresholds, but high-resolution optical captures on physical hardware should undergo human-in-the-loop validation prior to deployment.
+  Raw frames rejected  Direct                        Pass
+  by sink              `write_latest(raw_ndarray)`   
+                       calls rejected with           
+                       `PrivacyError`                
 
----
+  Expected output      `ack.json`,                   Pass
+  files only           `incidents.jsonl`,            
+                       `latest_blurred.jpg`,         
+                       `status.json`, plus temporary 
+                       files                         
 
-## 17. Troubleshooting Common Setup Errors
+  No raw videos or     No raw `.mp4`, `.avi`, or     Pass
+  unmasked images in   unmasked `.jpg` files         
+  output folders       reported                      
 
-- **`ModuleNotFoundError: No module named 'fg2'` or `part1`**:
-  - Ensure `PYTHONPATH` is set correctly in your terminal session:
-    ```powershell
-    $env:PYTHONPATH=".;part1;fallguard_part2/src"
-    ```
-- **Streamlit Fails to Load Dashboard**:
-  - Run Streamlit from the project root directory (`C:\Users\samya\OneDrive\Desktop\CRAFTIFAI`), not from inside `fallguard_part2/dashboard/`.
-- **Stale Status Warning on Dashboard**:
-  - Ensure the integration runner (`python fallguard_part2/run_integration.py`) or mock producer is actively running to feed fresh status updates into `runtime/status.json`.
+  Saved preview is     `latest_blurred.jpg` decoded  Pass
+  blurred              and was the only image        
+                       artifact                      
 
----
+  Incident records are Records contained allowlisted Pass
+  metadata-only        scalar fields                 
 
-## 18. Medical Disclaimer
+  MQTT alerts are      Alerts followed the           Pass
+  metadata-only        allowlisted schema            
 
-> **Safety Notice**: CRAFTIFAI FallGuard is an assistive prototype and research demonstration. It is **not** a certified medical device, clinical diagnostic tool, or validated emergency alarm. It must not be relied upon as the sole monitoring mechanism for patient safety or fall prevention. Always maintain appropriate direct supervision and professional caregiver oversight.
+  Stale status         Missing, 10-second-old, and   Pass
+  handling             fresh status cases            
+                       distinguished                 
 
----
+  Part 2 test suite    44/44 tests passed in 6.74    Pass
+                       seconds                       
+  -----------------------------------------------------------------------
+
+These figures are transcribed from the project's documented audit report
+and are not an independent re-run. See `PRIVACY_TEST_REPORT.md` and the
+files under `fallguard_part2/privacy/` for the project evidence.
+
+## Troubleshooting
+
+### `ModuleNotFoundError: No module named 'fg2'` or `part1`
+
+Make sure you are at the repository root, your virtual environment is
+active, and `PYTHONPATH` is set in the current terminal.
+
+PowerShell:
+
+``` powershell
+$env:PYTHONPATH=".;part1;fallguard_part2/src"
+```
+
+### The dashboard does not load or cannot find project modules
+
+Run Streamlit from the repository root rather than from inside
+`fallguard_part2/dashboard/`. Confirm dependencies were installed into
+the active virtual environment.
+
+### The dashboard reports stale status
+
+Start or restart the integration simulation:
+
+``` powershell
+python fallguard_part2/run_integration.py
+```
+
+Confirm that `runtime/status.json` is being updated and that the
+dashboard is reading the same runtime directory.
+
+### `streamlit` is not recognized
+
+Activate the virtual environment and reinstall the requirements if
+needed:
+
+``` powershell
+python -m pip install -r fallguard_part2/requirements.txt
+```
+
+## Limitations and roadmap
+
+-   **Simulation-first implementation:** the documented local workflow
+    uses synthetic CPU frames and generated keypoint traces. Live NVIDIA
+    TensorRT/DeepStream/GStreamer inference requires additional
+    integration.
+-   **Acknowledgement consumption:** automatic state-machine re-arming
+    requires an acknowledgement consumer to be wired into the Part 1
+    loop.
+-   **Real-world privacy validation:** test pixelation against the
+    actual cameras, resolutions, viewing conditions, and likely failure
+    modes before deployment.
+-   **Operational validation:** measure false positives, missed falls,
+    latency, availability, and recovery behavior using an appropriate,
+    ethically approved evaluation process.
+-   **Production hardening:** document deployment configuration,
+    monitoring, access controls, retention policies, and
+    incident-response procedures before real-world use.
+
+## Safety disclaimer
+
+FallGuard AI is an assistive prototype and research demonstration. It is
+**not** a certified medical device, clinical diagnostic tool, or
+validated emergency alarm. Do not rely on it as the sole mechanism for
+fall detection, patient monitoring, or emergency response. Maintain
+appropriate direct supervision and professional caregiver oversight.
+
+------------------------------------------------------------------------
 
 *Developed for CRAFTIFAI · Micro-Hack / FallGuard AI Initiative*
-*TEAM-NAME: Epsilon*
-
