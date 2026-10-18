@@ -139,3 +139,16 @@ def test_is_stale():
     assert is_stale(None)
     assert is_stale({"updated_at": 100.0}, now=104.0, ttl=3.0)
     assert not is_stale({"updated_at": 100.0}, now=102.0, ttl=3.0)
+
+def test_stale_ack_file_from_previous_session_is_ignored(tmp_path):
+    rt = tmp_path / "rt"; rt.mkdir()
+    (rt / "ack.json").write_text(json.dumps({"cmd": "ack", "ts": 1.0, "id": "left-over"}))
+    app, _ = make_app(tmp_path)
+    f, m = next(iter(MockSource(fps=5)))
+    app.step(f, m)
+    assert app.acked is False
+    assert [r["event"] for r in app.logger.read_all()].count("acknowledged") == 0
+    request_ack(rt)                        # a genuinely new ack is still honoured
+    app.step(f, m)
+    assert app.acked is True
+    assert [r["event"] for r in app.logger.read_all()].count("acknowledged") == 1

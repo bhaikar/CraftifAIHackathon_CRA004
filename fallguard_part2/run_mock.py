@@ -21,7 +21,7 @@ cfg = json.loads((Path(__file__).parent / "config/part2.json").read_text())
 bus = MqttBus(a.mqtt_host, a.mqtt_port) if a.mqtt_host else LocalBus()
 if a.mqtt_host:
     bus.start()
-logger = IncidentLogger(cfg["incident_dir"], cfg["model"], cfg["runtime"])
+logger = IncidentLogger(cfg["incident_dir"], "mock-producer", "mock")   # mock data must never look like real pipeline data
 app = Part2App(a.runtime, logger, FailClosedBlurrer(BlurConfig(**cfg["blur"])), AlertPublisher(bus), bus)
 print(f"running; runtime dir = {a.runtime}. Acknowledge from the dashboard when the fall is confirmed.")
 t0, n, worst = time.perf_counter(), 0, 0.0

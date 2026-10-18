@@ -14,7 +14,8 @@ class Part2App:
         self.dir.mkdir(parents=True, exist_ok=True)
         self.logger, self.blurrer, self.alerts = logger, blurrer, alerts
         self.acked = False
-        self._last_ack_id = None
+        # Ignore any ack.json left over from a previous session: consume its id without acting on it.
+        _, self._last_ack_id = poll_ack(self.dir, None)
         self._seen_ack_ts: list = []
         self._q: queue.Queue = queue.Queue()
         self._state, self._since = "normal", None
