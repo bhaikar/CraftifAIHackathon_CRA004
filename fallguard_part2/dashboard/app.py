@@ -82,7 +82,7 @@ def live():
         options = ["All"] + sorted({str(r.get("event", "unknown")) for r in events})
         selected = st.selectbox("Filter events", options, label_visibility="collapsed")
         if selected != "All": events = [r for r in events if r.get("event") == selected]
-        st.dataframe([{"UTC":r.get("ts_iso","—"), "Event":r.get("event","—"), "State":r.get("state","—"), "Reason":r.get("reason") or ("operator " + r["operator_action"] if r.get("operator_action") else "—"), "Evidence":r.get("evidence_score","—"), "Incident":r.get("incident_id","—")} for r in events], width="stretch", hide_index=True)
+        st.dataframe([{"UTC":r.get("ts_iso","—"), "Event":r.get("event","—"), "State":r.get("state","—"), "Reason":r.get("reason") or ("operator " + r["operator_action"] if r.get("operator_action") else "—"), "Evidence":str(r.get("evidence_score") if r.get("evidence_score") is not None else "—"), "Incident":r.get("incident_id","—")} for r in events], width="stretch", hide_index=True)
     else: st.caption("No incidents logged yet.")
     st.markdown('</div>', unsafe_allow_html=True)
 
