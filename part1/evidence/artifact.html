@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRAFTIFAI FallGuard Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0D14;
+    --surface: #131824;
+    --surface-hover: #1A2234;
+    --border: #222D44;
+    --border-bright: #334366;
+    --text: #F1F5F9;
+    --text-muted: #94A3B8;
+    --text-dim: #64748B;
+
+    --accent: #00E599;
+    --accent-glow: rgba(0, 229, 153, 0.15);
+    --amber: #FFB020;
+    --amber-glow: rgba(255, 176, 32, 0.15);
+    --crimson: #FF3B30;
+    --crimson-glow: rgba(255, 59, 48, 0.15);
+    --cyan: #38BDF8;
+
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #F8FAFC;
+      --surface: #FFFFFF;
+      --surface-hover: #F1F5F9;
+      --border: #E2E8F0;
+      --border-bright: #CBD5E1;
+      --text: #0F172A;
+      --text-muted: #475569;
+      --text-dim: #94A3B8;
+      --accent: #059669;
+      --accent-glow: rgba(5, 150, 105, 0.1);
+      --amber: #D97706;
+      --amber-glow: rgba(217, 119, 6, 0.1);
+      --crimson: #DC2626;
+      --crimson-glow: rgba(220, 38, 38, 0.1);
+      --cyan: #0284C7;
+      --shadow: 0 10px 30px -10px rgba(0,0,0,0.08);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0A0D14;
+    --surface: #131824;
+    --surface-hover: #1A2234;
+    --border: #222D44;
+    --border-bright: #334366;
+    --text: #F1F5F9;
+    --text-muted: #94A3B8;
+    --text-dim: #64748B;
+    --accent: #00E599;
+    --accent-glow: rgba(0, 229, 153, 0.15);
+    --amber: #FFB020;
+    --amber-glow: rgba(255, 176, 32, 0.15);
+    --crimson: #FF3B30;
+    --crimson-glow: rgba(255, 59, 48, 0.15);
+    --cyan: #38BDF8;
+    --shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .brand-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--accent), var(--cyan));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    color: #0A0D14;
+    font-size: 1.1rem;
+    font-family: var(--font-heading);
+  }
+
+  .brand-title {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .brand-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+
+  nav.tabs {
+    display: flex;
+    gap: 0.5rem;
+    background: var(--bg);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+  }
+
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 0.5rem 1rem;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .tab-btn:hover {
+    color: var(--text);
+    background: var(--surface-hover);
+  }
+
+  .tab-btn.active {
+    background: var(--surface);
+    color: var(--accent);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-bright);
+  }
+
+  main {
+    flex: 1;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .view {
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .view.active {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Grid layouts */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 1024px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card-title {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Live FSM Simulator */
+  .sim-container {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 900px) {
+    .sim-container { grid-template-columns: 1fr; }
+  }
+
+  .controls-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  select, input[type="range"], button.action-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.65rem 0.875rem;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+  }
+
+  select:focus, input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  button.action-btn {
+    background: var(--accent);
+    color: #0A0D14;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.2s;
+    border: none;
+  }
+
+  button.action-btn:hover {
+    filter: brightness(1.1);
+  }
+
+  .state-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    border: 2px solid var(--border);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .state-badge {
+    font-family: var(--font-heading);
+    font-size: 2rem;
+    font-weight: 800;
+    padding: 0.75rem 2rem;
+    border-radius: var(--radius-lg);
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+    transition: all 0.3s ease;
+  }
+
+  .state-badge.normal { background: var(--accent-glow); color: var(--accent); border: 2px solid var(--accent); }
+  .state-badge.possible { background: var(--amber-glow); color: var(--amber); border: 2px solid var(--amber); }
+  .state-badge.confirmed { background: var(--crimson-glow); color: var(--crimson); border: 2px solid var(--crimson); animation: pulse 2s infinite; }
+  .state-badge.recovering { background: rgba(56, 189, 248, 0.15); color: var(--cyan); border: 2px solid var(--cyan); }
+  .state-badge.unknown { background: rgba(100, 116, 139, 0.15); color: var(--text-dim); border: 2px solid var(--text-dim); }
+
+  @keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 var(--crimson-glow); }
+    50% { transform: scale(1.02); box-shadow: 0 0 20px 5px var(--crimson-glow); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 var(--crimson-glow); }
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 1.5rem;
+    width: 100%;
+  }
+
+  .metric-box {
+    background: var(--surface);
+    padding: 0.875rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    text-align: left;
+  }
+
+  .metric-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+
+  .metric-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--text);
+  }
+
+  /* Architecture Flow Chart */
+  .arch-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .pipeline-tier {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+  }
+
+  .tier-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .tier-nodes {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .node-box {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    flex: 1;
+    min-width: 180px;
+    position: relative;
+  }
+
+  .node-box.pipegen { border-left: 4px solid var(--accent); }
+  .node-box.custom { border-left: 4px solid var(--cyan); }
+
+  .node-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .node-desc {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  /* Scenario Table */
+  table.matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    text-align: left;
+  }
+
+  table.matrix-table th {
+    background: var(--bg);
+    color: var(--text-muted);
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+
+  table.matrix-table td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  table.matrix-table tr:hover td {
+    background: var(--surface-hover);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+  }
+
+  .badge.pass { background: var(--accent-glow); color: var(--accent); }
+  .badge.pending { background: var(--amber-glow); color: var(--amber); }
+
+  /* Code / Logs viewer */
+  pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    overflow-x: auto;
+    color: var(--cyan);
+    line-height: 1.6;
+  }
+
+  .footer-note {
+    margin-top: 3rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-icon">CF</div>
+    <div>
+      <div class="brand-title">CRAFTIFAI FallGuard</div>
+      <div class="brand-subtitle">Part 1: AI Pipeline & Fall Detection v0.5.1</div>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab-btn active" onclick="switchTab('simulator')">State Machine</button>
+    <button class="tab-btn" onclick="switchTab('architecture')">Architecture IR</button>
+    <button class="tab-btn" onclick="switchTab('matrix')">Scenario Matrix</button>
+    <button class="tab-btn" onclick="switchTab('evidence')">Evidence & Logs</button>
+  </nav>
+</header>
+
+<main>
+  <!-- TAB 1: SIMULATOR -->
+  <section id="simulator" class="view active">
+    <div class="sim-container">
+      <div class="card controls-panel">
+        <div class="card-title">Scenario Injector</div>
+        <div class="control-group">
+          <label for="scenarioSelect">Select Scenario</label>
+          <select id="scenarioSelect" onchange="runScenario(this.value)">
+            <option value="walk">Walk Normally (Normal)</option>
+            <option value="bend">Bend to Pick Up (Hard Negative)</option>
+            <option value="sit">Sit in Chair (Hard Negative)</option>
+            <option value="slow_lie">Lie Down Slowly</option>
+            <option value="fall">Simulated Sudden Fall</option>
+            <option value="recovery">Fall & Recovery + ACK</option>
+            <option value="occlusion">Occlusion / Missing Person</option>
+            <option value="camera_loss">Camera Loss (Watchdog)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="postureSlider">Trunk Angle (0° Upright → 90° Horizontal)</label>
+          <input type="range" id="postureSlider" min="0" max="90" value="10" oninput="manualPoseUpdate()">
+          <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">
+            <span>0° (Upright)</span>
+            <span id="angleVal">10°</span>
+            <span>90° (Horizontal)</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="velocitySlider">Hip Descent Velocity</label>
+          <input type="range" id="velocitySlider" min="0.0" max="2.0" step="0.1" value="0.1" oninput="manualPoseUpdate()">
+          <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">
+            <span>0.0 (Normal)</span>
+            <span id="velVal">0.1</span>
+            <span>2.0 (Rapid)</span>
+          </div>
+        </div>
+
+        <button class="action-btn" onclick="sendAcknowledgement()" id="ackBtn" style="margin-top: 0.5rem;" disabled>Acknowledge Alarm</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">FallGuard Live Status Engine</div>
+          <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);" id="timerDisplay">t = 0.0s</span>
+        </div>
+
+        <div class="state-display">
+          <div id="stateBadge" class="state-badge normal">Normal</div>
+          <div id="stateReason" style="font-size: 0.95rem; color: var(--text-muted); max-width: 450px;">Upright monitoring active. Stable posture detected.</div>
+
+          <div class="metrics-grid">
+            <div class="metric-box">
+              <div class="metric-label">Trunk Angle</div>
+              <div class="metric-value" id="mAngle">10.0°</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">Hip Velocity</div>
+              <div class="metric-value" id="mVel">0.10 /s</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">Confidence</div>
+              <div class="metric-value" id="mConf">0.95</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 2: ARCHITECTURE -->
+  <section id="architecture" class="view">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">PipeGen v0.5.1 + FallGuard Sidecar Pipeline Graph</div>
+        <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent);">DeepStream + TensorRT FP16</span>
+      </div>
+
+      <div class="arch-flow">
+        <div class="pipeline-tier">
+          <div class="tier-title"><span>■</span> PipeGen Runtime (DeepStream + TensorRT, GPU)</div>
+          <div class="tier-nodes">
+            <div class="node-box pipegen">
+              <div class="node-name">Capture</div>
+              <div class="node-desc">Webcam frame + timestamp_ms</div>
+            </div>
+            <div class="node-box pipegen">
+              <div class="node-name">Preprocess</div>
+              <div class="node-desc">Resize [640x640], normalize RGB</div>
+            </div>
+            <div class="node-box pipegen">
+              <div class="node-name">Pose Engine</div>
+              <div class="node-desc">TensorRT FP16 engine (YOLO-pose)</div>
+            </div>
+            <div class="node-box pipegen">
+              <div class="node-name">Decode</div>
+              <div class="node-desc">COCO-17 keypoints + person bbox</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pipeline-tier">
+          <div class="tier-title"><span>■</span> FallGuard Logic (Sidecar Process over JSONL)</div>
+          <div class="tier-nodes">
+            <div class="node-box custom">
+              <div class="node-name">Adapter</div>
+              <div class="node-desc">Keypoint mapping & single-person policy</div>
+            </div>
+            <div class="node-box custom">
+              <div class="node-name">Features</div>
+              <div class="node-desc">Torso-norm, aspect ratio, velocity</div>
+            </div>
+            <div class="node-box custom">
+              <div class="node-name">State Machine</div>
+              <div class="node-desc">5-state FSM (3s window confirmation)</div>
+            </div>
+            <div class="node-box custom">
+              <div class="node-name">Watchdog</div>
+              <div class="node-desc">Stale feed check (1.5s timeout → Unknown)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pipeline-tier">
+          <div class="tier-title"><span>■</span> Downstream Sinks</div>
+          <div class="tier-nodes">
+            <div class="node-box custom">
+              <div class="node-name">Status Panel</div>
+              <div class="node-desc">Real-time UI state & reason</div>
+            </div>
+            <div class="node-box custom">
+              <div class="node-name">Acknowledge</div>
+              <div class="node-desc">Operator check-in & cooldown re-arm</div>
+            </div>
+            <div class="node-box custom">
+              <div class="node-name">Event Log</div>
+              <div class="node-desc">Metadata CSV (zero raw video stored)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 3: MATRIX -->
+  <section id="matrix" class="view">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Scenario Validation Matrix (scenario-test-log.csv)</div>
+        <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">8 Scenarios · Hard Negative Verification</span>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th>Scenario</th>
+              <th>Expected State</th>
+              <th>Hard Negative</th>
+              <th>Run Status</th>
+              <th>Observed Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Walk</strong></td>
+              <td>Normal</td>
+              <td><span style="color: var(--text-dim);">No</span></td>
+              <td><span class="badge pending">Pending G0</span></td>
+              <td>Awaiting runtime container</td>
+            </tr>
+            <tr>
+              <td><strong>Bend</strong></td>
+              <td>Normal</td>
+              <td><span style="color: var(--accent);">Yes (Bending)</span></td>
+              <td><span class="badge pending">Pending G0</span></td>
+              <td>Awaiting runtime container</td>
+            </tr>
+            <tr>
+              <td><strong>Sit</strong></td>
+              <td>Normal</td>
+              <td><span style="color: var(--accent);">Yes (Sitting)</span></td>
+              <td><span class="badge pending">Pending G0</span></td>
+              <td>Awaiting runtime container</td>
+            </tr>
+            <tr>
+              <td><strong>Lie Down</strong></td>
+              <td>Confirmed Fall</td>
+              <td><span style="color: var(--text-dim);">No</span></td>
+              <td><span class="badge pending">Pending G0</span></td>
+              <td>Awaiting runtime container</td>
+            </tr>
+            <tr>
+              <td><strong>Simulated Fall</strong></td>
+              <td>Confirmed Fall (≤3s)</td>
+              <td><span style="color: var(--text-dim);">No</span></td>
+              <td><span class="badge pending">Pending G0</span></td>
+              <td>Awaiting runtime container</td>
+            </tr>
+            <tr>
+              <td><strong>Recovery</strong></td>
+              <td>Recovering → Normal</td>
+              <td><span style="color: var(--text-dim);">No</span></td>
+              <td><span class="badge pending">Pending G0</span></td>
+              <td>Awaiting runtime container</td>
+            </tr>
+            <tr>
+              <td><strong>Occlusion</strong></td>
+              <td>Unknown</td>
+              <td><span style="color: var(--text-dim);">No</span></td>
+              <td><span class="badge pending">Pending G0</span></td>
+              <td>Awaiting runtime container</td>
+            </tr>
+            <tr>
+              <td><strong>Camera Loss</strong></td>
+              <td>Unknown (Watchdog)</td>
+              <td><span style="color: var(--text-dim);">No</span></td>
+              <td><span class="badge pending">Pending G0</span></td>
+              <td>Awaiting runtime container</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 4: EVIDENCE -->
+  <section id="evidence" class="view">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title" style="margin-bottom: 1rem;">Platform Spike Checklist (G0)</div>
+        <pre># Host verification
+uname -a
+nvidia-smi
+python3 --version
+
+# DeepStream / TensorRT check
+python3 -c "import gi; print('PyGObject OK')"
+python3 -c "import pyds; print('DeepStream OK')"
+trtexec --version</pre>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom: 1rem;">Contract Message Schema</div>
+        <pre>{
+  "frame_id": 482,
+  "timestamp_ms": 1718790240120,
+  "state": "Confirmed Fall",
+  "reason": "low or horizontal posture persisted",
+  "confidence": 0.94,
+  "person_box": [120, 310, 480, 520],
+  "keypoints": [[...]],
+  "person_count": 1,
+  "metrics": {
+    "torso_length": 142.5,
+    "trunk_angle_deg": 84.2,
+    "body_aspect_ratio": 0.72
+  }
+}</pre>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="footer-note">
+  CRAFTIFAI Part 1 · PipeGen v0.5.1 + FallGuard · Built for GPU-accelerated edge inference
+</div>
+
+<script>
+  function switchTab(tabId) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  // Simulated FSM State
+  let currentState = 'Normal';
+  let reasonText = 'Upright monitoring active. Stable posture detected.';
+  let t = 0.0;
+
+  function updateDisplay(state, reason, angle, vel, conf) {
+    currentState = state;
+    const badge = document.getElementById('stateBadge');
+    badge.className = 'state-badge ' + (
+      state === 'Normal' ? 'normal' :
+      state === 'Possible Fall' ? 'possible' :
+      state === 'Confirmed Fall' ? 'confirmed' :
+      state === 'Recovering' ? 'recovering' : 'unknown'
+    );
+    badge.innerText = state;
+    document.getElementById('stateReason').innerText = reason;
+    document.getElementById('mAngle').innerText = angle.toFixed(1) + '°';
+    document.getElementById('mVel').innerText = vel.toFixed(2) + ' /s';
+    document.getElementById('mConf').innerText = conf.toFixed(2);
+
+    const ackBtn = document.getElementById('ackBtn');
+    if (state === 'Recovering') {
+      ackBtn.disabled = false;
+      ackBtn.style.opacity = '1';
+    } else {
+      ackBtn.disabled = true;
+      ackBtn.style.opacity = '0.5';
+    }
+  }
+
+  function runScenario(scen) {
+    const angleSlider = document.getElementById('postureSlider');
+    const velSlider = document.getElementById('velocitySlider');
+
+    if (scen === 'walk') {
+      angleSlider.value = 10; velSlider.value = 0.1;
+      updateDisplay('Normal', 'Upright monitoring active. Stable walking cadence.', 10, 0.1, 0.95);
+    } else if (scen === 'bend') {
+      angleSlider.value = 35; velSlider.value = 0.3;
+      updateDisplay('Normal', 'Hard negative: Bending motion within normal envelope.', 35, 0.3, 0.92);
+    } else if (scen === 'sit') {
+      angleSlider.value = 40; velSlider.value = 0.2;
+      updateDisplay('Normal', 'Hard negative: Sitting posture stable.', 40, 0.2, 0.90);
+    } else if (scen === 'slow_lie') {
+      angleSlider.value = 75; velSlider.value = 0.4;
+      updateDisplay('Possible Fall', 'Rapid descent detected; confirmation timer running (t=1.2s).', 75, 0.4, 0.88);
+    } else if (scen === 'fall') {
+      angleSlider.value = 88; velSlider.value = 1.8;
+      updateDisplay('Confirmed Fall', 'Low or horizontal posture persisted for >= 3.0s.', 88, 1.8, 0.96);
+    } else if (scen === 'recovery') {
+      angleSlider.value = 12; velSlider.value = 0.0;
+      updateDisplay('Recovering', 'Upright posture sustained; awaiting operator acknowledgement.', 12, 0.0, 0.94);
+    } else if (scen === 'occlusion') {
+      angleSlider.value = 0; velSlider.value = 0.0;
+      updateDisplay('Unknown', 'Zero confident persons detected in frame.', 0, 0, 0.0);
+    } else if (scen === 'camera_loss') {
+      angleSlider.value = 0; velSlider.value = 0.0;
+      updateDisplay('Unknown', 'Watchdog timeout: stale feed detected (>1.5s).', 0, 0, 0.0);
+    }
+  }
+
+  function manualPoseUpdate() {
+    const angle = parseFloat(document.getElementById('postureSlider').value);
+    const vel = parseFloat(document.getElementById('velocitySlider').value);
+    document.getElementById('angleVal').innerText = angle + '°';
+    document.getElementById('velVal').innerText = vel.toFixed(1);
+
+    if (angle > 60 && vel > 0.8) {
+      updateDisplay('Confirmed Fall', 'Manual override: rapid descent + horizontal posture latched.', angle, vel, 0.95);
+    } else if (angle > 55 || vel > 0.6) {
+      updateDisplay('Possible Fall', 'Manual override: potential descent candidate.', angle, vel, 0.92);
+    } else {
+      updateDisplay('Normal', 'Manual override: normal upright monitoring.', angle, vel, 0.95);
+    }
+  }
+
+  function sendAcknowledgement() {
+    updateDisplay('Normal', 'Operator acknowledged. Cooldown and re-armed.', 10, 0.0, 0.98);
+    document.getElementById('scenarioSelect').value = 'walk';
+  }
+</script>
+
+</body>
+</html>
